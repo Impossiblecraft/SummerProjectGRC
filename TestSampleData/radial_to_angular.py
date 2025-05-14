@@ -7,11 +7,13 @@ df = pd.read_csv("SampleData1.csv")
 
 #Convert to Galactic coordinates
 coords = SkyCoord(
-    ra=df['ra'] * u.deg,
-    dec=df['dec'] * u.deg,
-    distance=1 / (df['parallax'] * u.mas),  # Convert parallax to distance
+    ra=df['ra'].values * u.deg,
+    dec=df['dec'].values * u.deg,
+    distance=(1 / (df['parallax'].values * u.mas)) * u.parsec,
     frame='icrs'
 )
+
+
 
 df['l_calc'] = coords.galactic.l.deg
 df['b_calc'] = coords.galactic.b.deg
