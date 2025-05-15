@@ -10,8 +10,8 @@ from astroquery.gaia import Gaia
 
 # ADQL query: select stars with good parallax and magnitude
 query = """
-SELECT TOP 25000
-    source_id, ra, ra_error, dec, dec_error,
+SELECT TOP 100000
+    source_id, ra, ra_error, dec, dec_error, pmra, pmra_error, pmdec, pmdec_error,
     parallax, parallax_error, l, b, 
     radial_velocity, radial_velocity_error, rv_expected_sig_to_noise,
     phot_g_mean_mag
@@ -26,7 +26,7 @@ WHERE
     AND radial_velocity_error IS NOT NULL
     AND (radial_velocity_error / radial_velocity) BETWEEN -0.1 AND 0.1
     AND ((l BETWEEN 0 AND 10) OR (l BETWEEN 350 AND 360) OR (l BETWEEN 170 AND 190))
-    AND b BETWEEN -60 AND 60
+    AND b BETWEEN -90 AND 90
 """
 # filters:
 # photo_g_mag filters observed brightness, restricted galactic longitudes and latitudes(last two lines)
@@ -46,4 +46,4 @@ print(df.head())
 
 # %%
 
-df.to_csv("SampleData1.csv", index=False)
+df.to_csv("TestSampleData/SampleData2.csv", index=False)
