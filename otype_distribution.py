@@ -6,12 +6,10 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import pandas as pd
 
-# Load the uploaded CSV file to examine its structure
+
 file_path = '/Users/alex/Library/CloudStorage/OneDrive-ImperialCollegeLondon/computing/computing project/OTypes.csv'
 df = pd.read_csv(file_path)
 
-# Display the first few rows and column names
-df.head(), df.columns
 
 
 
@@ -70,4 +68,4 @@ fig_interactive.show()
 
 pio.renderers.default = 'browser'  # Forces Plotly to open in browser
 
-fig_interactive.show()  # Will now open in Chrome/Firefox/etc.
+fig_interactive.show()  
