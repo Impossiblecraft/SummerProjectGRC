@@ -8,7 +8,7 @@ Required Dependencies:
 - NumPy
 - SciPy
 
-##**Data Files**
+## **Data Files**
 Please store them seperately, so as to not overclutter the repository. Link can be found here:
 
 Onedrive link here
