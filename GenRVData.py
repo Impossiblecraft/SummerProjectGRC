@@ -18,8 +18,8 @@ SELECT TOP 300000
     phot_g_mean_mag
 FROM gaiadr3.gaia_source
 WHERE
-    parallax > 0.1
-    AND parallax_over_error > 20
+    parallax > 0.075
+    AND parallax_over_error > 7
     AND rv_expected_sig_to_noise > 10
     AND phot_g_mean_mag BETWEEN 8 AND 19
     AND (ruwe BETWEEN 0.9 AND 1.1)
@@ -47,4 +47,4 @@ df = results.to_pandas()
 print(df.head())
 
 # %%
-df.to_csv("RVData1.csv", index=False)
+df.to_csv("RVData2us.csv", index=False)
