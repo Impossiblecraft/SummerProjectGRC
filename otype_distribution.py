@@ -69,3 +69,54 @@ fig_interactive.show()
 pio.renderers.default = 'browser'  # Forces Plotly to open in browser
 
 fig_interactive.show()  
+
+# --- 2D XY Projection (Galactic Plane) ---
+fig_xy, ax_xy = plt.subplots(figsize=(10, 8))
+sc = ax_xy.scatter(df_clean['X'], df_clean['Y'],
+                   c=df_clean['bp_rp'], cmap='plasma', s=5, alpha=0.7)
+ax_xy.set_xlabel('X [kpc]')
+ax_xy.set_ylabel('Y [kpc]')
+ax_xy.set_title('2D Projection: Galactic Plane (XY)')
+ax_xy.axhline(0, color='gray', lw=0.5)
+ax_xy.axvline(0, color='gray', lw=0.5)
+cbar = plt.colorbar(sc, ax=ax_xy, label='BP - RP Color')
+ax_xy.set_aspect('equal')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# --- Assessing Vertical Structure: R vs Z ---
+df_clean['R'] = np.sqrt(df_clean['X']**2 + df_clean['Y']**2)
+
+fig_rz, ax_rz = plt.subplots(figsize=(10, 6))
+hb = ax_rz.hexbin(df_clean['R'], df_clean['Z'], gridsize=100, cmap='plasma', bins='log')
+ax_rz.set_xlabel('Galactocentric Radius R [kpc]')
+ax_rz.set_ylabel('Z [kpc]')
+ax_rz.set_title('Vertical Disk Structure: Z vs R')
+cbar_rz = plt.colorbar(hb, ax=ax_rz, label='log(Star Count)')
+plt.tight_layout()
+plt.show()
+
+# --- Assessing Radial Density Gradient ---
+# Bin stars radially and compute number per ring area
+r_bins = np.linspace(0, 12, 60)
+df_clean['R_bin'] = pd.cut(df_clean['R'], bins=r_bins)
+density_profile = df_clean.groupby('R_bin').size().reset_index(name='count')
+density_profile['R_center'] = [interval.mid for interval in density_profile['R_bin']]
+
+# Area of each ring slice (annular area)
+r_outer = r_bins[1:]
+r_inner = r_bins[:-1]
+ring_area = np.pi * (r_outer**2 - r_inner**2)
+density_profile['area_kpc2'] = ring_area
+density_profile['density'] = density_profile['count'] / density_profile['area_kpc2']
+
+fig_density, ax_density = plt.subplots(figsize=(10, 6))
+ax_density.plot(density_profile['R_center'], density_profile['density'], marker='o')
+ax_density.set_yscale('log')
+ax_density.set_xlabel('Galactocentric Radius R [kpc]')
+ax_density.set_ylabel('Stellar Surface Density [stars/kpc²]')
+ax_density.set_title('Radial Stellar Density Profile')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
