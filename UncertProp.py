@@ -14,7 +14,7 @@ import astropy.units as u
 
 ab = pd.read_csv("RVData2us.csv")
 
-max_stars = len(ab)-65000 #Just testing shorter dataset, adjust as needed
+max_stars = len(ab) #-65000 #Just testing shorter dataset, adjust as needed
 
 # Arrays for data and uncertainties
 dat = np.zeros((max_stars, 6))  # (px, py, pz, vx, vy, vz)
@@ -131,7 +131,7 @@ df_with_err = pd.DataFrame({
 
 # Save nominal values for compatibility
 df = pd.DataFrame(dat, columns=['px', 'py', 'pz', 'vx', 'vy', 'vz'])
-df.to_csv("ProcessedVicinityFull1.csv", index=False)
+
 
 # %%
 c = b.copy()
@@ -203,3 +203,14 @@ exp.to_csv("filterdrv1.csv", index=False)
 """
 Ignore all code below this point, it's for distance weighting and binning
 """
+#%%
+#All CSV exports are to be done here 
+#Change names as needed
+
+df.to_csv("rawrotcurvebin80k1.csv", index=False) #Converted p and rot v dta with error in cartesian coordinates
+
+exp_with_err = pd.DataFrame({
+    'pos_kpc': d[:, 0], 'pos_err_kpc': d_err[:, 0],
+    'rotv_kms': d[:, 1], 'rotv_err_kms': d_err[:, 1]
+})
+exp_with_err.to_csv("rotcurvebin80k1.csv", index=False) #Use this data for further analysis with uncertainties
