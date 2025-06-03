@@ -792,7 +792,7 @@ plt.tight_layout()
 plt.show()
 #%%
 
-best_degree=5
+#best_degree=6
 
 
 plt.errorbar(final_bin_centers, final_binned_velocities, 
@@ -968,4 +968,278 @@ print(f"Error reduction factor: {error_reduction_factor:.1f}x")
 
 
 """
+#%%
 
+# ...existing code...
+
+def power_series_fit_no_intercept(r, *coeffs):
+    """
+    Power series function with NO constant term: v(r) = a1*r + a2*r^2 + a3*r^3 + ...
+    Forces y-intercept to be 0
+    
+    Parameters:
+    -----------
+    r : array_like
+        Radial distances
+    *coeffs : tuple
+        Coefficients of the power series (a1, a2, a3, ...) - NO a0 term
+    
+    Returns:
+    --------
+    v : array_like
+        Velocity values at radii r
+    """
+    result = np.zeros_like(r)
+    for i, coeff in enumerate(coeffs):
+        result += coeff * r**(i+1)  # Start from r^1, not r^0
+    return result
+
+def fit_power_series_zero_intercept(radii, velocities, velocity_errors, max_degree=4):
+    """
+    Fit a power series to rotation curve data with y-intercept locked at 0
+    
+    Parameters:
+    -----------
+    radii : array_like
+        Radial distances of bins
+    velocities : array_like
+        Velocity values of bins
+    velocity_errors : array_like
+        Uncertainty in velocities
+    max_degree : int
+        Maximum degree of polynomial to fit
+        
+    Returns:
+    --------
+    dict with fitting results for different degrees
+    """
+    
+    results = {}
+    
+    for degree in range(1, max_degree + 1):
+        try:
+            # Define the function for this degree (no constant term)
+            def poly_func(r, *coeffs):
+                return power_series_fit_no_intercept(r, *coeffs)
+            
+            # Initial guess - now one fewer coefficient (no a0)
+            if degree == 1:
+                initial_guess = [10]  # Just a1 (slope)
+            elif degree == 2:
+                initial_guess = [10, -0.1]  # a1, a2
+            else:
+                initial_guess = [10] + [0.0] * (degree - 1)  # a1, a2, a3, ...
+            
+            # Fit the curve with error weighting
+            popt, pcov = curve_fit(
+                poly_func, radii, velocities, 
+                sigma=velocity_errors, 
+                p0=initial_guess,
+                absolute_sigma=True,
+                maxfev=5000
+            )
+            
+            # Calculate R-squared and reduced chi-squared
+            y_pred = power_series_fit_no_intercept(radii, *popt)
+            ss_res = np.sum((velocities - y_pred)**2)
+            ss_tot = np.sum((velocities - np.mean(velocities))**2)
+            r_squared = 1 - (ss_res / ss_tot)
+            
+            # Reduced chi-squared
+            chi_squared = np.sum(((velocities - y_pred) / velocity_errors)**2)
+            reduced_chi_squared = chi_squared / (len(velocities) - len(popt))
+            
+            # Calculate parameter uncertainties
+            param_errors = np.sqrt(np.diag(pcov))
+            
+            # Store results
+            results[degree] = {
+                'coefficients': popt,
+                'covariance': pcov,
+                'parameter_errors': param_errors,
+                'r_squared': r_squared,
+                'reduced_chi_squared': reduced_chi_squared,
+                'aic': len(velocities) * np.log(ss_res/len(velocities)) + 2*len(popt),
+                'bic': len(velocities) * np.log(ss_res/len(velocities)) + len(popt)*np.log(len(velocities))
+            }
+            
+        except Exception as e:
+            print(f"Failed to fit degree {degree} polynomial: {e}")
+            results[degree] = None
+    
+    return results
+
+# Perform power series fitting with zero intercept
+print("Fitting power series to binned rotation curve (y-intercept = 0)...")
+
+fit_results_zero = fit_power_series_zero_intercept(final_bin_centers, final_binned_velocities, 
+                                                  final_binned_velocity_errors, max_degree=5)
+
+# Print fitting results
+print(f"\n=== Power Series Fitting Results (Zero Intercept) ===")
+for degree, result in fit_results_zero.items():
+    if result is not None:
+        print(f"\nDegree {degree} polynomial:")
+        print(f"  R²: {result['r_squared']:.4f}")
+        print(f"  Reduced χ²: {result['reduced_chi_squared']:.4f}")
+        print(f"  AIC: {result['aic']:.2f}")
+        print(f"  BIC: {result['bic']:.2f}")
+        print("  Coefficients:")
+        for i, (coeff, error) in enumerate(zip(result['coefficients'], result['parameter_errors'])):
+            print(f"    a{i+1}: {coeff:.6f} ± {error:.6f}")  # Start from a1, not a0
+
+# Select best fit
+best_degree_zero = select_best_fit(fit_results_zero)
+print(f"\nBest fit (zero intercept): Degree {best_degree_zero} polynomial")
+
+#%%
+# Plot comparison between regular fit and zero-intercept fit
+plt.figure(figsize=(15, 10))
+
+#best_degree_zero=5
+
+# Plot 1: Original fit vs Zero-intercept fit
+plt.subplot(2, 2, 1)
+plt.errorbar(final_bin_centers, final_binned_velocities, 
+             yerr=final_binned_velocity_errors,
+             fmt='ko', capsize=5, markersize=6, label='Binned data')
+
+r_fine = np.linspace(0, final_bin_centers.max(), 300)  # Start from 0 to show intercept
+
+# Original fit (with intercept)
+if best_degree is not None:
+    best_result_orig = fit_results[best_degree]
+    v_fine_orig = power_series_fit(r_fine, *best_result_orig['coefficients'])
+    plt.plot(r_fine, v_fine_orig, 'blue', linewidth=2, 
+             label=f'With intercept (deg {best_degree})')
+
+# Zero-intercept fit
+if best_degree_zero is not None:
+    best_result_zero = fit_results_zero[best_degree_zero]
+    v_fine_zero = power_series_fit_no_intercept(r_fine, *best_result_zero['coefficients'])
+    plt.plot(r_fine, v_fine_zero, 'red', linewidth=2, 
+             label=f'Zero intercept (deg {best_degree_zero})')
+
+plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
+plt.xlabel('Radial Distance (kpc)')
+plt.ylabel('Rotational Velocity (km/s)')
+plt.title('Comparison: With vs Without Intercept')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+# Plot 2: Residuals comparison
+plt.subplot(2, 2, 2)
+if best_degree_zero is not None:
+    residuals_zero = final_binned_velocities - power_series_fit_no_intercept(final_bin_centers, *best_result_zero['coefficients'])
+    plt.errorbar(final_bin_centers, residuals_zero, 
+                yerr=final_binned_velocity_errors,
+                fmt='ro', capsize=5, markersize=6, label='Zero intercept')
+
+if best_degree is not None:
+    residuals_orig = final_binned_velocities - power_series_fit(final_bin_centers, *best_result_orig['coefficients'])
+    plt.errorbar(final_bin_centers + 0.05, residuals_orig,  # Offset slightly for visibility
+                yerr=final_binned_velocity_errors,
+                fmt='bo', capsize=5, markersize=6, label='With intercept')
+
+plt.axhline(y=0, color='black', linestyle='--', alpha=0.7)
+plt.xlabel('Radial Distance (kpc)')
+plt.ylabel('Residuals (km/s)')
+plt.title('Residuals Comparison')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+# Plot 3: Zero-intercept fit alone with data
+plt.subplot(2, 2, 3)
+plt.scatter(radii, velocities, alpha=0.1, s=1, color='gray', label='Individual stars')
+plt.errorbar(final_bin_centers, final_binned_velocities, 
+             yerr=final_binned_velocity_errors,
+             fmt='ko', capsize=5, markersize=8, label='Binned data')
+
+if best_degree_zero is not None:
+    plt.plot(r_fine, v_fine_zero, 'red', linewidth=3, 
+             label=f'Zero intercept fit (degree {best_degree_zero})')
+
+plt.xlabel('Radial Distance (kpc)')
+plt.ylabel('Rotational Velocity (km/s)')
+plt.title('Zero-Intercept Power Series Fit')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+# Plot 4: Model comparison metrics
+plt.subplot(2, 2, 4)
+degrees_orig = []
+degrees_zero = []
+aics_orig = []
+aics_zero = []
+
+for degree, result in fit_results.items():
+    if result is not None:
+        degrees_orig.append(degree)
+        aics_orig.append(result['aic'])
+
+for degree, result in fit_results_zero.items():
+    if result is not None:
+        degrees_zero.append(degree)
+        aics_zero.append(result['aic'])
+
+plt.plot(degrees_orig, aics_orig, 'bo-', label='With intercept', markersize=8)
+plt.plot(degrees_zero, aics_zero, 'ro-', label='Zero intercept', markersize=8)
+plt.xlabel('Polynomial Degree')
+plt.ylabel('AIC (lower is better)')
+plt.title('Model Selection: AIC Comparison')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+#%%
+# Save zero-intercept fit results
+best_degree_zero=5
+if best_degree_zero is not None:
+    best_result_zero = fit_results_zero[best_degree_zero]
+    
+    # Create detailed fit results
+    fit_data_zero = pd.DataFrame({
+        'radius_kpc': final_bin_centers,
+        'observed_velocity_kms': final_binned_velocities,
+        'velocity_error_kms': final_binned_velocity_errors,
+        'fitted_velocity_kms': power_series_fit_no_intercept(final_bin_centers, *best_result_zero['coefficients']),
+        'residuals_kms': final_binned_velocities - power_series_fit_no_intercept(final_bin_centers, *best_result_zero['coefficients'])
+    })
+    
+    fit_data_zero.to_csv("power_series_fit_results_zero_intercept_5_bin1.csv", index=False)
+    
+    # Save fit parameters
+    fit_params_zero = pd.DataFrame({
+        'coefficient': [f'a{i+1}' for i in range(len(best_result_zero['coefficients']))],  # a1, a2, a3, ...
+        'value': best_result_zero['coefficients'],
+        'error': best_result_zero['parameter_errors']
+    })
+    
+    fit_params_zero.to_csv("power_series_coefficients_zero_intercept_5_bin1.csv", index=False)
+    
+    print(f"\nSaved zero-intercept fitting results:")
+    print(f"- power_series_fit_results_zero_intercept.csv")
+    print(f"- power_series_coefficients_zero_intercept.csv")
+    
+    # Print the zero-intercept fit equation
+    print(f"\nZero-intercept fit equation (degree {best_degree_zero}):")
+    equation = "v(r) = "
+    for i, coeff in enumerate(best_result_zero['coefficients']):
+        power = i + 1  # Start from r^1
+        if i == 0:
+            equation += f"{coeff:.6f}*r"
+        else:
+            if coeff >= 0:
+                equation += f" + {coeff:.6f}*r^{power}"
+            else:
+                equation += f" - {abs(coeff):.6f}*r^{power}"
+    print(equation)
+    
+    print(f"\nFit statistics (zero intercept):")
+    print(f"R² = {best_result_zero['r_squared']:.6f}")
+    print(f"Reduced χ² = {best_result_zero['reduced_chi_squared']:.3f}")
+
+print("\nZero-intercept power series fitting complete!")
