@@ -127,7 +127,7 @@ df_with_err = pd.DataFrame({
     'vy': dat[:, 4], 'vy_err': dat_err[:, 4],
     'vz': dat[:, 5], 'vz_err': dat_err[:, 5]
 })
-#df_with_err.to_csv("ProcessedVicinityWithUncertainties.csv", index=False)
+df_with_err.to_csv("errrawrotcurve80k1.csv", index=False)
 
 # Save nominal values for compatibility
 df = pd.DataFrame(dat, columns=['px', 'py', 'pz', 'vx', 'vy', 'vz'])
@@ -194,11 +194,11 @@ exp_with_err = pd.DataFrame({
     'pos_kpc': d[:, 0], 'pos_err_kpc': d_err[:, 0],
     'rotv_kms': d[:, 1], 'rotv_err_kms': d_err[:, 1]
 })
-exp_with_err.to_csv("filterdrv1_with_uncertainties.csv", index=False)
+#exp_with_err.to_csv("filterdrv1_with_uncertainties.csv", index=False)
 
 # Save without uncertainties for compatibility
 exp = pd.DataFrame(d, columns=['pos(kpc)', 'rotv(km/s)'])
-exp.to_csv("filterdrv1.csv", index=False)
+#exp.to_csv("filterdrv1.csv", index=False)
 
 """
 Ignore all code below this point, it's for distance weighting and binning
@@ -207,10 +207,10 @@ Ignore all code below this point, it's for distance weighting and binning
 #All CSV exports are to be done here 
 #Change names as needed
 
-df.to_csv("rawrotcurvebin80k1.csv", index=False) #Converted p and rot v dta with error in cartesian coordinates
+#df.to_csv("rawrotcurvebin80k1.csv", index=False) #Converted p and rot v dta with error in cartesian coordinates
 
 exp_with_err = pd.DataFrame({
     'pos_kpc': d[:, 0], 'pos_err_kpc': d_err[:, 0],
     'rotv_kms': d[:, 1], 'rotv_err_kms': d_err[:, 1]
 })
-exp_with_err.to_csv("rotcurvebin80k1.csv", index=False) #Use this data for further analysis with uncertainties
+#exp_with_err.to_csv("rotcurvebin80k1.csv", index=False) #Use this data for further analysis with uncertainties
