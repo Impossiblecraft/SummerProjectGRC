@@ -742,3 +742,54 @@ if __name__ == "__main__":
     plt.savefig('milky_way_mass_components.png')
     plt.show()
 """
+
+"""
+#%%
+r_len = np.linspace(0.5, 25, 50)
+
+M_bar=np.zeros(len(r_len))
+# Calculate baryonic mass at each radius
+
+for i in range(len(r_len)):
+    a = calculate_total_baryonic_mass(r_len[i])
+    M_bar[i] = a['total_baryonic_mass']  # in M_sun
+    print(f"Radius: {r_len[i]:.2f} kpc, Baryonic Mass: {M_bar[i]:.2e} M_sun")
+
+#M_bar is in M_sun
+
+poly_order = 100
+bary_poly_coeff = np.polyfit(r_len, M_bar, poly_order)
+bary_poly = np.poly1d(bary_poly_coeff)
+
+# Export the coefficients to a file
+np.savetxt("baryonic_mass_polyfit_order100.txt", bary_poly_coeff)
+
+print("Saved 100th-order polynomial fit coefficients for baryonic mass to 'baryonic_mass_polyfit_order100.txt'.")
+
+# Optional: plot the fit for visual inspection
+
+plt.figure(figsize=(8,6))
+plt.plot(r_len, M_bar, 'o', label='Baryonic Mass Data')
+plt.plot(r_len, bary_poly(r_len), '-', label='100th-order Poly Fit')
+plt.xlabel('Radius (kpc)')
+plt.ylabel('Baryonic Mass [$M_\\odot$]')
+plt.legend()
+plt.title('100th-order Polynomial Fit to Baryonic Mass Profile')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+
+#%%
+t2l=np.linspace(0, 25, 100)
+t2=bary_poly(t2l)
+plt.figure(figsize=(8,6))
+plt.plot(t2l, t2, label='Baryonic Mass Profile Fit')
+plt.xlabel('Radius (kpc)')  
+plt.ylabel('Baryonic Mass [$M_\\odot$]')
+plt.title('Baryonic Mass Profile Fit')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+# %%
+"""

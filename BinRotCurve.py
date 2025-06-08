@@ -1243,3 +1243,24 @@ if best_degree_zero is not None:
     print(f"Reduced χ² = {best_result_zero['reduced_chi_squared']:.3f}")
 
 print("\nZero-intercept power series fitting complete!")
+
+#%%
+from scipy.optimize import curve_fit
+from astropy.constants import G
+import astropy.units as u
+
+def nfw_velocity(r, rho_s, r_s):
+    # r in kpc, rho_s in Msun/kpc^3, r_s in kpc
+    G_kpc_kms = G.to(u.kpc * u.km**2 / u.s**2 / u.Msun).value
+    x = r / r_s
+    mass = 4 * np.pi * rho_s * r_s**3 * (np.log(1 + x) - x / (1 + x))
+    v = np.sqrt(G_kpc_kms * mass / r)
+    return v
+
+def burkert_velocity(r, rho_0, r_c):
+    # r in kpc, rho_0 in Msun/kpc^3, r_c in kpc
+    G_kpc_kms = G.to(u.kpc * u.km**2 / u.s**2 / u.Msun).value
+    x = r / r_c
+    mass = (np.pi * rho_0 * r_c**3) * (np.log(1 + x) + 0.5 * np.log(1 + x**2) - np.arctan(x)) * 2
+    v = np.sqrt(G_kpc_kms * mass / r)
+    return v
