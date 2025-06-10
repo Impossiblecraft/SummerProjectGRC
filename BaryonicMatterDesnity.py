@@ -608,30 +608,63 @@ def calculate_baryonic_halo_mass_spherical(max_radius):
     return result
 
 
+def calculate_thin_disk_mass_cylindrical(max_radius):
+    """
+    Calculate the mass of the thin disk up to a maximum radius using cylindrical coordinates.
+    Integrates z from -5*z0 to +5*z0, r from 0 to R, phi from 0 to 2pi.
+    """
+    z0 = THIN_DISK_SCALE_HEIGHT
+    z_limits = [-5*z0, 5*z0]
+    r_limits = [0, max_radius]
+    phi_limits = [0, 2*np.pi]
+    result, error = integrate.nquad(
+        thin_disk_mass_integrand_cylindrical,
+        [z_limits, r_limits, phi_limits]
+    )
+    return result
+
+def calculate_thick_disk_mass_cylindrical(max_radius):
+    """
+    Calculate the mass of the thick disk up to a maximum radius using cylindrical coordinates.
+    Integrates z from -5*z0 to +5*z0, r from 0 to R, phi from 0 to 2pi.
+    """
+    z0 = THICK_DISK_SCALE_HEIGHT
+    z_limits = [-5*z0, 5*z0]
+    r_limits = [0, max_radius]
+    phi_limits = [0, 2*np.pi]
+    result, error = integrate.nquad(
+        thick_disk_mass_integrand_cylindrical,
+        [z_limits, r_limits, phi_limits]
+    )
+    return result
+
+def calculate_hi_disk_mass_cylindrical(max_radius):
+    """
+    Calculate the mass of the HI gas disk up to a maximum radius using cylindrical coordinates.
+    Integrates z from -5*z0 to +5*z0, r from 0 to R, phi from 0 to 2pi.
+    """
+    z0 = HI_DISK_SCALE_HEIGHT
+    z_limits = [-5*z0, 5*z0]
+    r_limits = [0, max_radius]
+    phi_limits = [0, 2*np.pi]
+    result, error = integrate.nquad(
+        hi_disk_mass_integrand_cylindrical,
+        [z_limits, r_limits, phi_limits]
+    )
+    return result
+
 def calculate_total_baryonic_mass(max_radius):
     """
     Calculate the total baryonic mass of the Milky Way up to a specified radius.
-    Includes thin disk, thick disk, HI gas disk, bulge, and baryonic halo.
-
-    Parameters:
-    -----------
-    max_radius : float
-        Maximum radius for the integration in kpc
-
-    Returns:
-    --------
-    dict
-        Dictionary containing the mass components and total mass in solar masses
+    Uses cylindrical integration for disk components, spherical for bulge and baryonic halo.
     """
-    thin_disk_mass = calculate_thin_disk_mass_spherical(max_radius)
-    thick_disk_mass = calculate_thick_disk_mass_spherical(max_radius)
-    hi_disk_mass = calculate_hi_disk_mass_spherical(max_radius)
+    thin_disk_mass = calculate_thin_disk_mass_cylindrical(max_radius)
+    thick_disk_mass = calculate_thick_disk_mass_cylindrical(max_radius)
+    hi_disk_mass = calculate_hi_disk_mass_cylindrical(max_radius)
     bulge_mass = calculate_bulge_mass_spherical(max_radius)
     bary_halo_mass = calculate_baryonic_halo_mass_spherical(max_radius)
 
-    # Sum of all baryonic components (excluding dark matter halo)
-    total_baryonic_mass = thin_disk_mass + thick_disk_mass + \
-        hi_disk_mass + bulge_mass + bary_halo_mass
+    total_baryonic_mass = thin_disk_mass + thick_disk_mass + hi_disk_mass + bulge_mass + bary_halo_mass
 
     return {
         'thin_disk_mass': thin_disk_mass,
@@ -642,26 +675,14 @@ def calculate_total_baryonic_mass(max_radius):
         'total_baryonic_mass': total_baryonic_mass
     }
 
-
 def calculate_total_mass_with_dm(max_radius):
     """
     Calculate the total mass (baryonic + dark matter) of the Milky Way up to a specified radius.
-
-    Parameters:
-    -----------
-    max_radius : float
-        Maximum radius for the integration in kpc
-
-    Returns:
-    --------
-    dict
-        Dictionary containing the mass components and total mass in solar masses
+    Uses improved baryonic mass calculation.
     """
     baryonic_data = calculate_total_baryonic_mass(max_radius)
     halo_mass = calculate_halo_mass_spherical(max_radius)
-
     total_mass = baryonic_data['total_baryonic_mass'] + halo_mass
-
     return {
         'thin_disk_mass': baryonic_data['thin_disk_mass'],
         'thick_disk_mass': baryonic_data['thick_disk_mass'],
@@ -674,6 +695,8 @@ def calculate_total_mass_with_dm(max_radius):
     }
 
 
+#print(calculate_total_mass_with_dm(200)['total_baryonic_mass'])
+#print(calculate_total_baryonic_mass(100)['total_baryonic_mass'])
 """
 # Example usage
 if __name__ == "__main__":
@@ -762,7 +785,7 @@ bary_poly_coeff = np.polyfit(r_len, M_bar, poly_order)
 bary_poly = np.poly1d(bary_poly_coeff)
 
 # Export the coefficients to a file
-np.savetxt("baryonic_mass_polyfit_order100.txt", bary_poly_coeff)
+#np.savetxt("baryonic2_mass_polyfit_order100.txt", bary_poly_coeff)
 
 print("Saved 100th-order polynomial fit coefficients for baryonic mass to 'baryonic_mass_polyfit_order100.txt'.")
 
