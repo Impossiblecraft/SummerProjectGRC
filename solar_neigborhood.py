@@ -228,22 +228,37 @@ plt.grid(False)
 plt.tight_layout()
 plt.show()
 
+
+#%%
+#from scipy.spatial.distance import pdist
 # -----------------------------
 # Spiral Arm Definitions
 # -----------------------------
-def spiral(r0, theta0_deg, pitch_deg, theta_range=np.linspace(0, 4*np.pi, 1000)):
-    theta0 = np.deg2rad(theta0_deg)
+def spiral(R_ref, theta_ref_deg, pitch_deg, dtheta=np.pi, npts=1000):
+    """
+    Logarithmic spiral arm in Galactocentric coordinates.
+    R_ref: reference radius (kpc)
+    theta_ref_deg: reference angle (deg)
+    pitch_deg: pitch angle (deg)
+    dtheta: range to extend on either side of theta_ref (radians)
+    npts: number of points
+    """
+    theta_ref = np.deg2rad(theta_ref_deg)
     pitch = np.deg2rad(pitch_deg)
-    r = r0 * np.exp((theta_range - theta0) * np.tan(pitch))
-    x_arm = r * np.cos(theta_range)
-    y_arm = r * np.sin(theta_range)
+    # Symmetric theta range around theta_ref
+    theta_range = np.linspace(theta_ref - dtheta, theta_ref + dtheta, npts)
+    r = R_ref * np.exp((theta_range - theta_ref) * np.tan(pitch))
+    # Only keep r > 0
+    mask = r > 0
+    x_arm = r[mask] * np.cos(theta_range[mask])
+    y_arm = r[mask] * np.sin(theta_range[mask])
     return x_arm, y_arm
 
 arms = {
-    'Scutum':     (0.5,  25, 12.8),
-    'Sagittarius':(1,  60, 12.8),
-    'Perseus':    (1.7, 130, 13.5),
-    'Cygnus':     (2.0, 210, 13.5)
+    'Scutum':     (5,  27.6, 19.8),
+    'Sagittarius':(6.5,  25.6, 6.9-1.6),
+    'Perseus':    (10, 14.2, 9.4-1.4),
+    'Cygnus':     (8.4, 8.9, 12.8)
 }
 
 # Stack x, y into 2D array for clustering
@@ -262,6 +277,15 @@ centroids = kmeans.cluster_centers_
 
 # Count how many stars in each cluster
 counts = np.bincount(labels)
+
+#Removing Stars around sol due to data overdensity
+a=0
+for i in range(len(counts)):
+    if np.abs(centroids[a, 0])<=0.3 and np.abs(centroids[a, 1])<=0.3:
+        centroids=np.delete(centroids, a, axis=0)
+    else:
+        a+=1
+        
 
 # Plot the results
 plt.figure(figsize=(10, 9))
@@ -282,19 +306,82 @@ plt.show()
 # # -----------------------------
 plt.figure(figsize=(12, 10))
 # plt.scatter(x, y, s=1, alpha=0.3, label='OB Candidates', color='navy')
-plt.scatter(centroids[:, 0], centroids[:, 1], c='k', s=20, marker='+', label='Cluster Centers')
-plt.plot(0, 0, 'ro', label='Sun')
+plt.scatter(centroids[:, 0]+8.122, centroids[:, 1], c='k', s=20, marker='+', label='Cluster Centers')
+plt.plot(8.122, 0, 'ro', label='Sun')
 
 # Overlay spiral arms
-for name, (r0, theta0, pitch) in arms.items():
-    xs, ys = spiral(r0, theta0, pitch, np.linspace(8*np.pi/3, 10*np.pi/3, 1000))
-    plt.plot(xs + 8.122, ys, label=f'{name} Arm')  # shift spiral arms by +8.122 kpc to Sun's frame
+for name, (R_ref, theta_ref, pitch) in arms.items():
+    xs, ys = spiral(R_ref, theta_ref, pitch, dtheta=np.pi/4, npts=2000)
+    plt.plot(xs, ys, label=f'{name} Arm')
 
-plt.xlabel('x[kpc]')
+
+plt.xlabel('x[kpc]', fontsize=14)
+plt.ylabel('y [kpc]', fontsize=14)
+plt.title('OB Clusters and Spiral Arms', fontsize=20)
+plt.legend(fontsize=14)
+plt.gca().set_aspect('equal')
+#plt.grid(True)
+plt.tight_layout()
+plt.savefig('SpiralBinned.png', dpi=900)
+plt.show()
+
+"""
+# Stack x, y into 2D array for clustering
+XY = np.vstack([x, y]).T
+
+# DBSCAN parameters
+spatial_eps = 0.05   # Minimum spatial scale for a cluster (kpc)
+min_stars = 25      # Minimum number of stars per cluster
+max_dist_kpc = 0.15  # Maximum allowed diameter for a cluster (kpc)
+
+# Perform DBSCAN clustering
+db = DBSCAN(eps=spatial_eps, min_samples=min_stars).fit(XY)
+labels = db.labels_
+
+# Post-process: split clusters that are too large
+new_labels = np.full_like(labels, -1)
+current_label = 0
+
+for k in np.unique(labels[labels != -1]):
+    members = XY[labels == k]
+    if len(members) < 2:
+        continue
+    # Compute max pairwise distance
+    max_dist = np.max(pdist(members))
+    if max_dist <= max_dist_kpc:
+        new_labels[labels == k] = current_label
+        current_label += 1
+    else:
+        # If too large, use Agglomerative Clustering to split
+        from sklearn.cluster import AgglomerativeClustering
+        n_subclusters = int(np.ceil(max_dist / max_dist_kpc))
+        subclust = AgglomerativeClustering(n_clusters=n_subclusters, linkage='ward').fit(members)
+        for sub in range(n_subclusters):
+            mask = (labels == k)
+            mask[mask] = (subclust.labels_ == sub)
+            new_labels[mask] = current_label
+            current_label += 1
+
+labels = new_labels
+
+# Get cluster centers (mean position of each cluster)
+unique_labels = np.unique(labels[labels != -1])
+centroids = np.array([XY[labels == k].mean(axis=0) for k in unique_labels])
+
+# Count how many stars in each cluster
+counts = np.array([np.sum(labels == k) for k in unique_labels])
+
+# Plot the results
+plt.figure(figsize=(10, 9))
+plt.scatter(x, y, c=labels, s=1, cmap='tab20', alpha=0.4)
+plt.scatter(centroids[:, 0], centroids[:, 1], c='k', s=20, marker='+', label='Cluster Centers')
+plt.xlabel('x [kpc]')
 plt.ylabel('y [kpc]')
-plt.title('OB Stars and Spiral Arms')
+plt.title(f'OB Star Clustering: ≥{min_stars} Stars, {spatial_eps} ≤ Cluster Size ≤ {max_dist_kpc} kpc')
+#plt.plot(0, 0, 'ro', label='Sun')
 plt.legend()
 plt.gca().set_aspect('equal')
-plt.grid(True)
+plt.grid(False)
 plt.tight_layout()
 plt.show()
+"""
