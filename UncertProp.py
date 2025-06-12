@@ -3,6 +3,8 @@
 Created on Fri May 16 12:43:11 2025
 
 @author: Rajveer Daga
+
+Processing astrometric data to calculate Galactocentric positions and velocities with uncertainties using Monte Carlo method.
 """
 #Use Monte Carlo
 

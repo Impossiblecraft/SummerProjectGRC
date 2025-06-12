@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm
 
+#File bins data. There are multiple redundant functions
+
 # Load data with uncertainties from UncertProp
 data = pd.read_csv("rotcurvebin80k1.csv")
 

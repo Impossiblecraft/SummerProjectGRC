@@ -3,6 +3,8 @@
 Created on Tue May 20 15:21:39 2025
 
 @author: Rajveer Daga
+
+Plotting Baryonic Mass Rotation Curve
 """
 
 from BaryonicMatterDesnity import calculate_total_baryonic_mass, calculate_total_mass_with_dm
