@@ -8,7 +8,12 @@ Required Dependencies:
 - NumPy
 - SciPy
 
+## **Data Files**
+Please store them seperately, so as to not overclutter the repository. Link can be found here:
 
+Onedrive link here
+
+Import data files as necessary, and share them on the Onedrive file
 
 ## **ADQL**
 ADQL is largely similar to SQL, adapted for astronomical data. Queries can be passed to astronomical datsets via AstroQuery.
